@@ -1,5 +1,10 @@
 import os
+import boto3
+import logging
 from deploy_scripts import stack_deploy
+
+logging.getLogger().setLevel("INFO")
+dynamo_client = boto3.client('dynamodb')
 
 template_name = 'templates/glue-pipeline.yaml'
 lambda_glue_file = "lambda-glue.zip"
@@ -77,3 +82,29 @@ call_create_stack = stack_deploy.StackCreation(stack_name, reading, parameter)
 
 call_create_stack.create_stack()
 call_create_stack.stack_status()
+
+items = [{
+    'PutRequest': {
+        'Item': {
+            'fileType': {'S': 'csv'},
+            'glueJobName': {'S': glue_csv_name}
+        }}},
+    {
+        'PutRequest': {
+            'Item': {
+                'fileType': {'S': 'json'},
+                'glueJobName': {'S': glue_json_name}
+            }},
+    }]
+
+
+logging.info("Starting adding items in dynamodb")
+try:
+    dynamo_client.batch_write_item(
+        RequestItems={
+            dynamodb_table_name: items
+        }
+    )
+    logging.info("Done adding items in dynamodb")
+except dynamo_client.exceptions.ResourceNotFoundException:
+    logging.error("Table not found")
