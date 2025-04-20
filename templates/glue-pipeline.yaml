@@ -241,6 +241,7 @@ Resources:
                   - "s3:ListBucket"
                   - "glue:CreateTable"
                   - "glue:UpdateTable"
+                  - "glue:GetDatabase"
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
