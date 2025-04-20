@@ -238,6 +238,7 @@ Resources:
                 Action:
                   - "s3:GetObject"
                   - "s3:PutObject"
+                  - "s3:ListBucket"
                   - "glue:CreateTable"
                   - "glue:UpdateTable"
                   - "logs:CreateLogGroup"
@@ -247,6 +248,7 @@ Resources:
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
                   - !Sub "arn:aws:s3:::${S3InputBucketName}/*"
                   - !Sub "arn:aws:s3:::${S3CrawlerBucketName}/*"
+                  - !Sub "arn:aws:s3:::${S3CrawlerBucketName}"
                   - !Sub "arn:aws:s3:::${CodeGlueBucket}/*"
                   #- !Sub "arn:aws:s3:::${S3OutputAthenaBucketName}/*"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${DatabaseName}"
