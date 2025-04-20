@@ -72,6 +72,14 @@ parameter = [
     {
         'ParameterKey': 'GlueJobJsonName',
         'ParameterValue': glue_json_name
+    },
+    {
+        'ParameterKey': 'LambdaGlueHandler',
+        'ParameterValue': f"{lambda_glue_file.split(".")[0]}.lambda_handler"
+    },
+    {
+        'ParameterKey': 'LambdaCrawlerHandler',
+        'ParameterValue': f"{lambda_glue_crawler.split(".")[0]}.lambda_handler"
     }
 ]
 
