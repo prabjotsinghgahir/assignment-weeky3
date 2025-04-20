@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Description: Deploying resources for assignment 3
 Parameters:
   S3InputBucketName:
@@ -33,17 +33,17 @@ Parameters:
     Default: lambda-crawler.zip
   LambdaCrawlerHandler:
     Type: String
-    Default: lambda-crawler.handler
+    Default: lambda_handler.handler
   LambdaGlueKey:
     Type: String
     Default: lambda-glue.zip
   LambdaGlueHandler:
     Type: String
-    Default: lambda-glue.handler
-  glueJobCsvName:
+    Default: lambda_handler.handler
+  GlueJobCsvName:
     Type: String
     Default: glue-job-csv
-  glueJobJsonName:
+  GlueJobJsonName:
     Type: String
     Default: glue-job-json
 Resources:
@@ -76,7 +76,7 @@ Resources:
       SourceAccount: !Ref AWS::AccountId
       SourceArn:
         'Fn::Sub': 'arn:aws:s3:::${S3InputBucketName}'
-  CrawlerLambdaPermission2:
+  CrawlerLambdaPermission:
     Type: "AWS::Lambda::Permission"
     Properties:
       FunctionName: !GetAtt CrawlerLambda.Arn
@@ -94,7 +94,162 @@ Resources:
       Code:
         S3Bucket: !Ref CodeGlueBucket
         S3Key: !Ref LambdaGlueKey
-      Runtime: python3.8
+      Runtime: python3.13
       Handler: !Ref LambdaGlueHandler
-      Role: !GetAtt IAM.Arn
+      Role: !GetAtt LambdaIAM.Arn
       Timeout: 300
+  CrawlerLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Environment:
+        Variables:
+          crawlername: !Ref CName
+          outputbucket: !Ref S3OutputAthenaBucketName
+          databasename: !Ref DatabaseName
+      Code:
+        S3Bucket: !Ref CodeGlueBucket
+        S3Key: !Ref LambdaCrawlerKey
+      Runtime: python3.13
+      Handler: !Ref LambdaCrawlerHandler
+      Role: !GetAtt LambdaIAM.Arn
+      Timeout: 300
+  DataBase:
+    Type: "AWS::Glue::Database"
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref DatabaseName
+  Crawler:
+    Type: "AWS::Glue::Crawler"
+    Properties:
+      Name: !Ref CName
+      Role: !GetAtt GlueIAM.Arn
+      DatabaseName: !Ref DatabaseName
+      Targets:
+        S3Targets:
+          - Path: !Ref S3CrawlerBucketName
+  DynamoDbTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Ref DynamoTableName
+      AttributeDefinitions:
+        - AttributeName: "fileType"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "fileType"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+  GlueJobJson:
+    Type: "AWS::Glue::Job"
+    Properties:
+      Name: !Ref GlueJobJsonName
+      Role: !GetAtt GlueIAM.Arn
+      GlueVersion: 4.0
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${CodeGlueBucket}/${GlueJobJsonFileName}"
+      DefaultArguments: {
+        "--s3_input": !Sub "s3://${S3InputBucketName}/",
+        "--file_name": "value_random",
+        "--s3_output_path": !Sub "s3://${S3CrawlerBucketName}"
+      }
+  GlueJobCsv:
+    Type: "AWS::Glue::Job"
+    Properties:
+      Name: !Ref GlueJobCsvName
+      Role: !GetAtt GlueIAM.Arn
+      GlueVersion: 4.0
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${CodeGlueBucket}/${GlueJobCsvFileName}"
+      DefaultArguments: {
+        "--s3_input": !Sub "s3://${S3InputBucketName}/",
+        "--file_name": "value_random",
+        "--s3_output_path": !Sub "s3://${S3CrawlerBucketName}"
+      }
+  LambdaIAM:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "cf-a3-glue-lambda-s3-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+                - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: "cf-assign3-glue-lambda-s3-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "dynamodb:GetItem"
+                  - "glue:GetDatabase"
+                  - "glue:GetTables"
+                  - "glue:StartCrawler"
+                  - "glue:GetCrawler"
+                  - "glue:GetJobRun"
+                  - "glue:StartJobRun"
+                  - "athena:StartQueryExecution"
+                Resource:
+                  - !Sub "arn:aws:s3:::${S3InputBucketName}/*"
+                  - !Sub "arn:aws:s3:::${S3CrawlerBucketName}/*"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoTableName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${CName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${DatabaseName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${DatabaseName}/*"
+                  - !Sub "arn:aws:athena:${AWS::Region}:${AWS::AccountId}:workgroup/primary"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobCsvName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobJsonName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  GlueIAM:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "cf-a3-glue-s3-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: "cf-assign3-glue-s3-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "glue:CreateTable"
+                  - "glue:UpdateTable"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resources:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+                  - !Sub "arn:aws:s3:::${S3InputBucketName}/*"
+                  - !Sub "arn:aws:s3:::${S3CrawlerBucketName}/*"
+                  - !Sub "arn:aws:s3:::${S3OutputAthenaBucketName}/*"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${DatabaseName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${DatabaseName}/*"
+                  #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobCsvFileName}"
+                  #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobJsonFileName}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"

@@ -28,6 +28,7 @@ def lambda_handler(event, context):
         logging.warning("Crawler already running")
     try:
         crawler_table = glue_client.get_tables(DatabaseName=dbase)['TableList'][0]['Name']
+        print(f"Printing crawler table: {crawler_table}")
     except glue_client.exceptions.EntityNotFoundException:
         logging.error("Table not found")
         raise Exception("Table not found")
