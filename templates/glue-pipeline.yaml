@@ -242,7 +242,7 @@ Resources:
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
-                Resources:
+                Resource:
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
                   - !Sub "arn:aws:s3:::${S3InputBucketName}/*"
                   - !Sub "arn:aws:s3:::${S3CrawlerBucketName}/*"
