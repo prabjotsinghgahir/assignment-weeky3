@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploying resources for assignment 3
+Parameters:
+  S3InputBucketName:
+    Type: String
+    Default: input-bucket-psg
+  S3CrawlerBucketName:
+    Type: String
+    Default: crawler-bucket-psg
+  S3OutputAthenaBucketName:
+    Type: String
+    Default: output-athena-psg
+  CodeGlueBucket:
+    Type: String
+    Default: code-bucket-psg
+  CName:
+    Type: String
+    Default: crawler-psg
+  GlueJobCsvFileName:
+    Type: String
+    Default: glue-job-csv.py
+  GlueJobJsonFileName:
+    Type: String
+    Default: glue-job-json.py
+  DynamoTableName:
+    Type: String
+    Default: glueTable
+  DatabaseName:
+    Type: String
+    Default: databasepsg
+  LambdaCrawlerKey:
+    Type: String
+    Default: lambda-crawler.zip
+  LambdaCrawlerHandler:
+    Type: String
+    Default: lambda-crawler.handler
+  LambdaGlueKey:
+    Type: String
+    Default: lambda-glue.zip
+  LambdaGlueHandler:
+    Type: String
+    Default: lambda-glue.handler
+  glueJobCsvName:
+    Type: String
+    Default: glue-job-csv
+  glueJobJsonName:
+    Type: String
+    Default: glue-job-json
+Resources:
+  S3InputBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref S3InputBucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Function: !GetAtt GlueLambda.Arn
+  S3CrawlerBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref S3CrawlerBucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Function: !GetAtt CrawlerLambda.Arn
+  S3OutputAthenaBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref S3OutputAthenaBucketName
+  GlueLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt GlueLambda.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn:
+        'Fn::Sub': 'arn:aws:s3:::${S3InputBucketName}'
+  CrawlerLambdaPermission2:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt CrawlerLambda.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn:
+        'Fn::Sub': 'arn:aws:s3:::${S3CrawlerBucketName}'
+  GlueLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Environment:
+        Variables:
+          dynamotablename: !Ref DynamoTableName
+      Code:
+        S3Bucket: !Ref CodeGlueBucket
+        S3Key: !Ref LambdaGlueKey
+      Runtime: python3.8
+      Handler: !Ref LambdaGlueHandler
+      Role: !GetAtt IAM.Arn
+      Timeout: 300
