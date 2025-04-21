@@ -200,6 +200,7 @@ Resources:
                   - "dynamodb:GetItem"
                   - "glue:GetDatabase"
                   - "glue:GetTable"
+                  - "glue:GetTables"
                   - "glue:StartCrawler"
                   - "glue:GetCrawler"
                   - "glue:GetJobRun"
