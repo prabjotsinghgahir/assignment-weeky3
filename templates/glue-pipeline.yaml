@@ -242,6 +242,7 @@ Resources:
                   - "glue:CreateTable"
                   - "glue:UpdateTable"
                   - "glue:GetDatabase"
+                  - "glue:GetTable"
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
@@ -257,3 +258,52 @@ Resources:
                   #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobCsvFileName}"
                   #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobJsonFileName}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+  SnsTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "cf-a3-glue-error"
+      DisplayName: "cf-a3-glue-error-notification"
+      Subscription:
+        - Endpoint: "prabjotsinghgahir@gmail.com"
+          Protocol: "email"
+  EventBridgeIAM:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "cf-a3-glue-event-bridge-sns-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: "cf-assign3-glue-s3-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sns:Publish"
+                Resource: !Ref SnsTopic
+  EventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Rule for glue job errors"
+      EventPattern:
+        source:
+          - "aws.glue"
+        detail-type:
+          - "Glue Job State Change"
+        detail:
+          jobName:
+            - !Ref GlueJobCsvName
+            - !Ref GlueJobJsonName
+          state:
+            - "FAILED"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref SnsTopic
+          RoleArn: !GetAtt EventBridgeIAM.Arn

@@ -29,7 +29,7 @@ def lambda_handler(event, context):
     try:
         crawler_table = glue_client.get_tables(DatabaseName=dbase)['TableList'][0]['Name']
         print(f"Printing crawler table: {crawler_table}")
-    except glue_client.exceptions.EntityNotFoundException:
+    except IndexError:
         logging.error("Table not found")
         raise Exception("Table not found")
     athena_client.start_query_execution(
