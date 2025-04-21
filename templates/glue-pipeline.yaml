@@ -136,6 +136,8 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "fileType"
           AttributeType: "S"
+        - AttributeName: "glueJobName"
+          AttributeType: "S"
       KeySchema:
         - AttributeName: "fileType"
           KeyType: "HASH"
@@ -265,11 +267,8 @@ Resources:
                   - !Sub "arn:aws:s3:::${CodeGlueBucket}/*"
                   - !Sub 'arn:aws:s3:::${S3OutputAthenaBucketName}/*'
                   - !Sub 'arn:aws:s3:::${S3OutputAthenaBucketName}'
-                  #- !Sub "arn:aws:s3:::${S3OutputAthenaBucketName}/*"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${DatabaseName}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${DatabaseName}/*"
-                  #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobCsvFileName}"
-                  #- !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobJsonFileName}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
   SnsTopic:
     Type: "AWS::SNS::Topic"
