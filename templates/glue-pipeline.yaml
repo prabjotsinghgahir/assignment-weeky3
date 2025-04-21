@@ -196,6 +196,7 @@ Resources:
                 Action:
                   - "s3:GetObject"
                   - "s3:PutObject"
+                  - "s3:GetBucketLocation"
                   - "dynamodb:GetItem"
                   - "glue:GetDatabase"
                   - "glue:GetTables"
