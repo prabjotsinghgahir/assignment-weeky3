@@ -136,8 +136,6 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "fileType"
           AttributeType: "S"
-        - AttributeName: "glueJobName"
-          AttributeType: "S"
       KeySchema:
         - AttributeName: "fileType"
           KeyType: "HASH"
