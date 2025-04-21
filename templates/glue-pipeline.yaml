@@ -212,6 +212,7 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::${S3InputBucketName}/*"
                   - !Sub "arn:aws:s3:::${S3CrawlerBucketName}/*"
+                  - !Sub "arn:aws:s3:::${S3CrawlerBucketName}"
                   - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoTableName}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${CName}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${DatabaseName}"
