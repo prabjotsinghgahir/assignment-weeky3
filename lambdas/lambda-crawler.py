@@ -33,7 +33,7 @@ def lambda_handler(event, context):
         logging.error("Table not found")
         raise Exception("Table not found")
     athena_client.start_query_execution(
-        QueryString='CREATE OR REPLACE VIEW test AS SELECT * FROM %s' % crawler_table,
+        QueryString='CREATE OR REPLACE VIEW test AS SELECT * FROM %s.%s' % (dbase,crawler_table),
         QueryExecutionContext={
             'Database': dbase
         },
