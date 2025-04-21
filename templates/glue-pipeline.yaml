@@ -307,3 +307,4 @@ Resources:
       Targets:
         - Arn: !Ref SnsTopic
           RoleArn: !GetAtt EventBridgeIAM.Arn
+          Id: "cf-a3-event-rule-glue"
